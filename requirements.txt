@@ -1,0 +1,9 @@
+streamlit
+streamlit-option-menu
+groq
+python-dotenv
+youtube-transcript-api
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+pytz

@@ -466,4 +466,8 @@ with tab6:
 
         st.success(
             "Weekly Email Sent!"
+<<<<<<< HEAD
         )
+=======
+        )
+>>>>>>> 660db88 (removed option menu)
