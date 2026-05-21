@@ -1,31 +1,47 @@
 import webbrowser
+import urllib.parse
 
 
-def recommend_videos(skill):
+def recommend_videos(
+    query
+):
 
-    print("\n===== RECOMMENDED YOUTUBE VIDEOS =====\n")
+    search_queries = [
 
-    queries = [
-        f"{skill} tutorial for beginners",
-        f"best {skill} playlist",
-        f"{skill} crash course"
+        f"{query} tutorial "
+        f"for beginners",
+
+        f"best {query} "
+        f"playlist",
+
+        f"{query} crash "
+        f"course"
     ]
 
-    for i, query in enumerate(queries, start=1):
+    videos = []
 
-        youtube_link = (
-            f"https://www.youtube.com/results?search_query={query}"
+    for q in search_queries:
+
+        encoded_query = (
+            urllib.parse.quote(
+                q
+            )
         )
 
-        print(f"{i}. {query}")
-        print(youtube_link)
-        print()
-
-    open_video = input(
-        "\nDo you want to open YouTube recommendations? (yes/no): "
-    )
-
-    if open_video.lower() == "yes":
-        webbrowser.open(
-            f"https://www.youtube.com/results?search_query={skill}+tutorial"
+        url = (
+            "https://www.youtube.com/"
+            "results?search_query="
+            f"{encoded_query}"
         )
+
+        videos.append(
+            {
+                "title":
+                q.title(),
+
+                "url":
+                url
+            }
+        )
+
+    return videos
