@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
 import json
 import os
 
@@ -28,7 +27,6 @@ from services.chat_service import (
     load_chat
 )
 
-
 # -----------------------------------
 # PAGE CONFIG
 # -----------------------------------
@@ -41,23 +39,74 @@ st.set_page_config(
 # -----------------------------------
 # STORAGE
 # -----------------------------------
-if not os.path.exists(
-    "storage"
-):
-    os.makedirs(
-        "storage"
-    )
+os.makedirs(
+    "storage",
+    exist_ok=True
+)
 
+USER_FILE = (
+    "storage/users.json"
+)
+
+CHAT_FILE = (
+    "storage/chat_history.json"
+)
+
+# create users.json if not exists
 if not os.path.exists(
-    "storage/user.json"
+    USER_FILE
 ):
     with open(
-        "storage/user.json",
+        USER_FILE,
         "w"
     ) as f:
+
         json.dump(
             {},
             f
+        )
+
+# create chat_history.json
+if not os.path.exists(
+    CHAT_FILE
+):
+    with open(
+        CHAT_FILE,
+        "w"
+    ) as f:
+
+        json.dump(
+            {},
+            f
+        )
+
+
+# -----------------------------------
+# LOAD USERS
+# -----------------------------------
+def load_users():
+
+    with open(
+        USER_FILE,
+        "r"
+    ) as f:
+
+        return json.load(f)
+
+
+def save_users(
+    data
+):
+
+    with open(
+        USER_FILE,
+        "w"
+    ) as f:
+
+        json.dump(
+            data,
+            f,
+            indent=4
         )
 
 
@@ -80,73 +129,71 @@ st.markdown(
 )
 
 # -----------------------------------
-# SIDEBAR MENU
+# USER LOGIN
 # -----------------------------------
-selected = option_menu(
+username = st.sidebar.text_input(
+    "Enter Username"
+)
 
-    menu_title=None,
+if not username:
 
-    options=[
-        "Home",
-        "Roadmap",
-        "Videos",
-        "Mentor Chat",
-        "Progress",
-        "Settings"
-    ],
+    st.warning(
+        "Please enter username first."
+    )
 
-    icons=[
-        "house",
-        "map",
-        "camera-video",
-        "chat",
-        "graph-up",
-        "gear"
-    ],
+    st.stop()
 
-    orientation="horizontal"
+users = load_users()
+
+user_data = (
+    users.get(
+        username,
+        {}
+    )
 )
 
 # -----------------------------------
-# HOME TAB
+# TABS
 # -----------------------------------
-if selected == "Home":
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "🏠 Home",
+    "🗺 Roadmap",
+    "🎥 Videos",
+    "💬 Mentor Chat",
+    "📈 Progress",
+    "⚙ Settings"
+])
+
+# ===================================
+# HOME TAB
+# ===================================
+with tab1:
 
     st.subheader(
-        "Start Your Skill Journey"
+        "Start Learning"
     )
 
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.image(
-            "https://images.unsplash.com/photo-1517836357463-d25dfeac3438",
-            use_container_width=True
-        )
-        st.caption("Fitness")
-
-    with col2:
-        st.image(
-            "https://images.unsplash.com/photo-1522202176988-66273c2fd55f",
-            use_container_width=True
-        )
-        st.caption("Languages")
-
-    with col3:
-        st.image(
-            "https://images.unsplash.com/photo-1515879218367-8466d910aaa4",
-            use_container_width=True
-        )
-        st.caption("Programming")
-
-    st.divider()
+    st.image(
+        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
+        use_container_width=True
+    )
 
     skill = st.text_input(
-        "Skill"
+        "Skill",
+
+        value=user_data.get(
+            "skill",
+            ""
+        )
     )
 
     goal = st.text_input(
-        "Goal"
+        "Goal",
+
+        value=user_data.get(
+            "goal",
+            ""
+        )
     )
 
     level = st.selectbox(
@@ -166,9 +213,9 @@ if selected == "Home":
     )
 
     hours = st.number_input(
-        "Hours per day",
+        "Hours Per Day",
         min_value=1,
-        max_value=10,
+        max_value=12,
         value=2
     )
 
@@ -190,55 +237,81 @@ if selected == "Home":
                 )
             )
 
-            st.session_state[
-                "roadmap"
-            ] = roadmap
+            users[
+                username
+            ] = {
 
-            st.session_state[
-                "skill"
-            ] = skill
+                "skill":
+                skill,
+
+                "goal":
+                goal,
+
+                "level":
+                level,
+
+                "months":
+                months,
+
+                "hours":
+                hours,
+
+                "roadmap":
+                roadmap
+            }
+
+            save_users(
+                users
+            )
 
             st.success(
-                "Roadmap Generated!"
+                "Roadmap saved!"
             )
 
             st.write(
                 roadmap
             )
 
-# -----------------------------------
+# ===================================
 # ROADMAP TAB
-# -----------------------------------
-elif selected == "Roadmap":
+# ===================================
+with tab2:
 
     st.subheader(
-        "Your Learning Roadmap"
+        "Saved Roadmap"
     )
 
     roadmap = (
-        st.session_state
-        .get(
-            "roadmap",
-            "Generate roadmap first."
+        user_data.get(
+            "roadmap"
         )
     )
 
-    st.write(
-        roadmap
-    )
+    if roadmap:
 
-# -----------------------------------
+        st.write(
+            roadmap
+        )
+
+    else:
+
+        st.warning(
+            "Generate roadmap first."
+        )
+
+# ===================================
 # VIDEOS TAB
-# -----------------------------------
-elif selected == "Videos":
+# ===================================
+with tab3:
 
     st.subheader(
         "Recommended Videos"
     )
 
     skill = (
-        st.session_state
-        .get("skill")
+        user_data.get(
+            "skill"
+        )
     )
 
     if skill:
@@ -253,8 +326,7 @@ elif selected == "Videos":
 
             st.markdown(
                 f"""
-                - [{v['title']}]
-                ({v['url']})
+### [{v['title']}]({v['url']})
                 """
             )
 
@@ -282,20 +354,16 @@ elif selected == "Videos":
             summary
         )
 
-# -----------------------------------
+# ===================================
 # CHAT TAB
-# -----------------------------------
-elif selected == "Mentor Chat":
+# ===================================
+with tab4:
 
     st.subheader(
         "Continue Learning"
     )
 
-    username = st.text_input(
-        "Username"
-    )
-
-    message = st.text_input(
+    msg = st.text_input(
         "Ask mentor"
     )
 
@@ -305,7 +373,7 @@ elif selected == "Mentor Chat":
 
         save_chat(
             username,
-            message
+            msg
         )
 
         st.success(
@@ -318,59 +386,56 @@ elif selected == "Mentor Chat":
         )
     )
 
-    for msg in history:
+    for h in history:
 
         st.chat_message(
             "user"
-        ).write(msg)
+        ).write(h)
 
-# -----------------------------------
+# ===================================
 # PROGRESS TAB
-# -----------------------------------
-elif selected == "Progress":
+# ===================================
+with tab5:
 
     st.subheader(
-        "Track Progress"
+        "Progress Tracker"
     )
 
-    completed = st.text_area(
+    progress = st.text_area(
         "What did you complete?"
     )
 
     if st.button(
-        "Update Progress"
+        "Save Progress"
     ):
 
         st.success(
-            "Progress Updated!"
+            "Progress saved!"
         )
 
-# -----------------------------------
+# ===================================
 # SETTINGS TAB
-# -----------------------------------
-elif selected == "Settings":
+# ===================================
+with tab6:
 
     st.subheader(
         "Calendar & Email"
     )
 
-    skill = (
-        st.session_state
-        .get("skill")
-    )
-
-    time = st.text_input(
+    preferred_time = st.text_input(
         "Preferred Time",
         "18:00"
     )
 
     if st.button(
-        "Add Calendar"
+        "Add Calendar Event"
     ):
 
         add_learning_schedule(
-            skill,
-            time
+            user_data.get(
+                "skill"
+            ),
+            preferred_time
         )
 
         st.success(
@@ -378,27 +443,27 @@ elif selected == "Settings":
         )
 
     email = st.text_input(
-        "Weekly Report Email"
+        "Email"
     )
 
     if st.button(
         "Enable Weekly Report"
     ):
 
-        roadmap = (
-            st.session_state
-            .get(
+        send_weekly_email(
+
+            email,
+
+            user_data.get(
+                "skill"
+            ),
+
+            user_data.get(
                 "roadmap",
                 ""
             )
         )
 
-        send_weekly_email(
-            email,
-            skill,
-            roadmap
-        )
-
         st.success(
-            "Email Sent!"
+            "Weekly Email Sent!"
         )
