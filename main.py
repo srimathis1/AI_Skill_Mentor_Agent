@@ -5,9 +5,10 @@ import os
 from services.youtube_service import recommend_videos
 from services.summary_service import summarize_video
 from services.calendar_service import add_learning_schedule
+from services.email_service import send_weekly_email
 
 # --------------------------------
-# LOAD ENV VARIABLES
+# LOAD ENV
 # --------------------------------
 load_dotenv()
 
@@ -15,7 +16,9 @@ load_dotenv()
 # GROQ CLIENT
 # --------------------------------
 client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=os.getenv(
+        "GROQ_API_KEY"
+    )
 )
 
 
@@ -33,189 +36,257 @@ def generate_roadmap(
     prompt = f"""
 You are an expert AI Skill Mentor.
 
-Create a HIGHLY PERSONALIZED roadmap.
+Generate a HIGHLY PERSONALIZED roadmap.
 
 USER DETAILS:
 
 Skill: {skill}
 Goal: {goal}
-Current Level: {level}
+Level: {level}
 Duration: {months} months
-Daily Study Time: {hours_per_day} hours
+Daily Time: {hours_per_day} hours
 
 IMPORTANT:
 
-1. Understand skill domain automatically.
+1. Detect domain automatically.
 
 Examples:
 - Gym → Fitness
-- Japanese → Language Learning
+- Japanese → Language
 - Spring Boot → Programming
-- Photography → Creative Skill
+- Dancing → Creative Skill
+- Cooking → Lifestyle
 
-2. Adapt roadmap using:
+2. DO NOT GIVE GENERIC ROADMAP.
+
+3. Adapt roadmap based on:
 - Goal
 - Level
+- Time available
 - Duration
-- Daily study time
 
-3. Goal matters.
+4. Give SPECIFIC learning path.
 
 Examples:
 
-Gym + muscle gain
-→ strength training,
-protein,
-progressive overload
+Gym + muscle gain:
+- workout split
+- protein intake
+- progressive overload
+- recovery
 
-Gym + weight loss
-→ cardio,
-fat loss,
-diet
+Japanese + fun:
+- anime vocabulary
+- conversation
+- speaking
+- listening
 
-Japanese + travel
-→ speaking,
-travel phrases,
-restaurant vocabulary
+Spring Boot + job:
+- Java
+- Spring Core
+- REST APIs
+- JPA
+- Security
+- Projects
 
-Spring Boot + job
-→ Java,
-Spring Core,
-REST APIs,
-JPA,
-Projects,
-Interview prep
+Output format:
 
-4. DO NOT GIVE GENERIC ROADMAP.
-
-OUTPUT FORMAT:
-
-1. Skill Domain Identified
-
-2. Personalized Learning Strategy
-
+1. Skill Domain
+2. Personalized Strategy
 3. Month-by-Month Roadmap
-
-4. Weekly Focus Areas
-
-5. Daily Study Plan
-
+4. Weekly Focus
+5. Daily Plan
 6. Practice Methods
+7. Long-Term Progression
 
-7. Beginner → Intermediate → Advanced Path
-
-Keep response:
-- beginner friendly
-- structured
+Keep it:
 - practical
-- meaningful
+- beginner friendly
+- domain specific
 """
 
     try:
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "system",
-                    "content":
-                    "You are a world-class personalized mentor."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+        response = (
+            client.chat.completions.create(
+                model=
+                "llama-3.3-70b-versatile",
+
+                messages=[
+                    {
+                        "role":
+                        "system",
+
+                        "content":
+                        "You are a "
+                        "world-class "
+                        "mentor."
+                    },
+                    {
+                        "role":
+                        "user",
+
+                        "content":
+                        prompt
+                    }
+                ]
+            )
         )
 
-        return response.choices[0].message.content
+        return (
+            response
+            .choices[0]
+            .message.content
+        )
 
     except Exception as e:
 
-        return f"""
-Error generating roadmap.
-
-Reason:
-{e}
-"""
+        return (
+            f"\nRoadmap "
+            f"generation error:\n{e}"
+        )
 
 
 # --------------------------------
-# MAIN FUNCTION
+# MAIN
 # --------------------------------
 def main():
 
-    print("\n===== AI Skill Mentor Agent =====\n")
-
-    # QUESTION 1
-    skill = input(
-        "What skill do you want to learn? "
+    print(
+        "\n===== "
+        "AI Skill Mentor "
+        "Agent =====\n"
     )
 
-    # QUESTION 2
+    # -------------------------
+    # USER INPUT
+    # -------------------------
+    skill = input(
+        "What skill do "
+        "you want to learn? "
+    )
+
     goal = input(
         "What is your goal? "
-        "(Travel / Job / Weight Loss / "
-        "Muscle Gain / Project / Fun): "
+        "(Job/Travel/"
+        "Fun/Muscle Gain/"
+        "Weight Loss/etc): "
     )
 
-    # QUESTION 3
     level = input(
-        "What is your current level? "
-        "(Beginner / Intermediate / Advanced): "
+        "Current level? "
+        "(Beginner/"
+        "Intermediate/"
+        "Advanced): "
     )
 
-    # QUESTION 4
     months = input(
         "How many months? "
     )
 
     hours_per_day = input(
-        "How many hours per day? "
+        "How many hours "
+        "per day? "
     )
 
-    # Calendar time
-    study_time = input(
-        "Preferred study time? "
-        "(HH:MM 24-hour format, e.g. 18:00): "
+    preferred_time = input(
+        "Preferred schedule "
+        "time? "
+        "(HH:MM format): "
     )
 
-    print("\nGenerating personalized roadmap...\n")
-
-    roadmap = generate_roadmap(
-        skill,
-        goal,
-        level,
-        months,
-        hours_per_day
+    print(
+        "\nGenerating "
+        "personalized roadmap...\n"
     )
 
-    print("\n" + "=" * 60)
-    print("YOUR PERSONALIZED LEARNING ROADMAP")
-    print("=" * 60)
+    roadmap = (
+        generate_roadmap(
+            skill,
+            goal,
+            level,
+            months,
+            hours_per_day
+        )
+    )
+
+    # -------------------------
+    # ROADMAP OUTPUT
+    # -------------------------
+    print(
+        "\n" + "=" * 60
+    )
+
+    print(
+        "YOUR PERSONALIZED "
+        "LEARNING ROADMAP"
+    )
+
+    print(
+        "=" * 60
+    )
 
     print(roadmap)
 
-    print("\n" + "=" * 60)
-
-    # --------------------------------
-    # GOOGLE CALENDAR
-    # --------------------------------
-    calendar_choice = input(
-        "\nDo you want to add study sessions "
-        "to Google Calendar? (yes/no): "
+    print(
+        "\n" + "=" * 60
     )
 
-    if calendar_choice.lower() == "yes":
+    # -------------------------
+    # CALENDAR
+    # -------------------------
+    calendar_choice = input(
+        "\nDo you want to "
+        "add study sessions "
+        "to Google Calendar? "
+        "(yes/no): "
+    )
+
+    if (
+        calendar_choice.lower()
+        == "yes"
+    ):
 
         add_learning_schedule(
             skill,
-            study_time
+            preferred_time
         )
 
-    # --------------------------------
-    # BETTER YOUTUBE RECOMMENDATION
-    # --------------------------------
+    # -------------------------
+    # EMAIL REPORT
+    # -------------------------
+    email_choice = input(
+        "\nDo you want "
+        "weekly progress "
+        "emails? "
+        "(yes/no): "
+    )
+
+    if (
+        email_choice.lower()
+        == "yes"
+    ):
+
+        receiver_email = input(
+            "Enter email: "
+        )
+
+        send_weekly_email(
+            receiver_email,
+            skill,
+            roadmap
+        )
+
+    # -------------------------
+    # YOUTUBE
+    # -------------------------
+    print(
+        "\n===== "
+        "RECOMMENDED "
+        "YOUTUBE VIDEOS "
+        "=====\n"
+    )
+
     youtube_query = (
         f"{skill} "
         f"{goal} "
@@ -226,23 +297,33 @@ def main():
         youtube_query
     )
 
-    # --------------------------------
-    # VIDEO SUMMARIZATION
-    # --------------------------------
-    choice = input(
-        "\nDo you want video summarization? "
+    # -------------------------
+    # VIDEO SUMMARY
+    # -------------------------
+    summary_choice = input(
+        "\nDo you want "
+        "video summarization? "
         "(yes/no): "
     )
 
-    if choice.lower() == "yes":
+    if (
+        summary_choice.lower()
+        == "yes"
+    ):
 
         video_url = input(
-            "\nPaste YouTube video URL: "
+            "\nPaste "
+            "YouTube URL: "
         )
 
         summarize_video(
             video_url
         )
+
+    print(
+        "\nThanks for using "
+        "AI Skill Mentor!"
+    )
 
 
 # --------------------------------
