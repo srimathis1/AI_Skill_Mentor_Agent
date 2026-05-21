@@ -1,25 +1,38 @@
 from __future__ import print_function
 
-import datetime
-import os.path
+import os
+from datetime import datetime, timedelta
+import pytz
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
+
+# ----------------------------
+# GOOGLE CALENDAR SCOPE
+# ----------------------------
 SCOPES = [
     "https://www.googleapis.com/auth/calendar"
 ]
 
 
-def add_learning_schedule(skill, preferred_time):
+# ----------------------------
+# ADD LEARNING SCHEDULE
+# ----------------------------
+def add_learning_schedule(
+    skill,
+    preferred_time
+):
 
     try:
 
         creds = None
 
-        # safer path
+        # ----------------------------
+        # PROJECT PATHS
+        # ----------------------------
         BASE_DIR = os.path.dirname(
             os.path.dirname(
                 os.path.abspath(__file__)
@@ -36,7 +49,12 @@ def add_learning_schedule(skill, preferred_time):
             "credentials.json"
         )
 
-        if os.path.exists(token_path):
+        # ----------------------------
+        # LOAD TOKEN
+        # ----------------------------
+        if os.path.exists(
+            token_path
+        ):
 
             creds = (
                 Credentials
@@ -46,13 +64,20 @@ def add_learning_schedule(skill, preferred_time):
                 )
             )
 
-        if not creds or not creds.valid:
+        # ----------------------------
+        # LOGIN IF NEEDED
+        # ----------------------------
+        if (
+            not creds
+            or not creds.valid
+        ):
 
             if (
                 creds
                 and creds.expired
                 and creds.refresh_token
             ):
+
                 creds.refresh(
                     Request()
                 )
@@ -82,106 +107,164 @@ def add_learning_schedule(skill, preferred_time):
                     creds.to_json()
                 )
 
+        # ----------------------------
+        # CALENDAR SERVICE
+        # ----------------------------
         service = build(
             "calendar",
             "v3",
             credentials=creds
         )
 
-        # Domain aware naming
+        # ----------------------------
+        # SMART EVENT TITLE
+        # ----------------------------
         fitness_keywords = [
             "gym",
             "fitness",
             "workout",
-            "weight loss",
-            "muscle gain"
+            "muscle gain",
+            "weight loss"
         ]
 
-        if skill.lower() in fitness_keywords:
-            session_name = (
-                f"{skill} Workout"
+        if (
+            skill.lower()
+            in fitness_keywords
+        ):
+
+            event_title = (
+                f"{skill.title()} Workout"
             )
+
         else:
-            session_name = (
-                f"{skill} Learning"
+
+            event_title = (
+                f"{skill.title()} Learning"
             )
 
-        for i in range(7):
+        # ----------------------------
+        # FORCE INDIA TIMEZONE
+        # ----------------------------
+        india_tz = pytz.timezone(
+            "Asia/Kolkata"
+        )
 
-            start_date = (
-                datetime.datetime.now()
-                + datetime.timedelta(
-                    days=i + 1
-                )
+        # Parse user time
+        hour, minute = map(
+            int,
+            preferred_time.split(":")
+        )
+
+        today = datetime.now(
+            india_tz
+        )
+
+        start_datetime = india_tz.localize(
+            datetime(
+                today.year,
+                today.month,
+                today.day,
+                hour,
+                minute,
+                0
+            )
+        )
+
+        # If today's time passed
+        if (
+            start_datetime
+            < today
+        ):
+            start_datetime += timedelta(
+                days=1
             )
 
-            time_obj = (
-                datetime.datetime.strptime(
-                    preferred_time,
-                    "%H:%M"
-                )
-            )
-
-            start_datetime = (
-                start_date.replace(
-                    hour=time_obj.hour,
-                    minute=time_obj.minute,
-                    second=0
-                )
-            )
-
-            end_datetime = (
-                start_datetime
-                + datetime.timedelta(
-                    hours=1
-                )
-            )
-
-            event = {
-                "summary":
-                session_name,
-
-                "description":
-                f"AI Skill Mentor "
-                f"- {skill}",
-
-                "start": {
-                    "dateTime":
-                    start_datetime.isoformat(),
-
-                    "timeZone":
-                    "Asia/Kolkata",
-                },
-
-                "end": {
-                    "dateTime":
-                    end_datetime.isoformat(),
-
-                    "timeZone":
-                    "Asia/Kolkata",
-                },
-
-                "reminders": {
-                    "useDefault": False,
-                    "overrides": [
-                        {
-                            "method":
-                            "popup",
-
-                            "minutes":
-                            30
-                        }
-                    ]
-                }
-            }
-
-            service.events().insert(
-                calendarId="primary",
-                body=event
-            ).execute()
+        end_datetime = (
+            start_datetime
+            + timedelta(hours=1)
+        )
 
         print(
-            "\nCalendar events added successfully!\n"
+            "\nAdding calendar event...\n"
+        )
+
+        # ----------------------------
+        # CREATE EVENT
+        # ----------------------------
+        event = {
+
+            "summary":
+            event_title,
+
+            "description":
+            (
+                f"AI Skill Mentor\n"
+                f"Skill: {skill}"
+            ),
+
+            "start": {
+
+                "dateTime":
+                start_datetime.isoformat(),
+
+                "timeZone":
+                "Asia/Kolkata"
+            },
+
+            "end": {
+
+                "dateTime":
+                end_datetime.isoformat(),
+
+                "timeZone":
+                "Asia/Kolkata"
+            },
+
+            # recurring 30 days
+            "recurrence": [
+                "RRULE:FREQ=DAILY;COUNT=30"
+            ],
+
+            "reminders": {
+
+                "useDefault":
+                False,
+
+                "overrides": [
+                    {
+                        "method":
+                        "popup",
+
+                        "minutes":
+                        30
+                    }
+                ]
+            }
+        }
+
+        created_event = (
+            service.events()
+            .insert(
+                calendarId="primary",
+                body=event
+            )
+            .execute()
+        )
+
+        print(
+            f"\nAdded successfully "
+            f"at {preferred_time} IST"
+        )
+
+        print(
+            created_event.get(
+                "htmlLink"
+            )
+        )
+
+        print(
+            "\nCalendar event "
+            "added successfully!\n"
         )
 
     except Exception as e:
