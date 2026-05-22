@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 
 from services.youtube_service import recommend_videos
-from services.summary_service import summarize_video
+from services.video_summary_service import summarize_video
 from services.calendar_service import add_learning_schedule
 from services.email_service import send_weekly_email
 

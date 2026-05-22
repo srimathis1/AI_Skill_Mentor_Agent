@@ -1,47 +1,32 @@
-import webbrowser
 import urllib.parse
 
 
 def recommend_videos(
-    query
+    skill
 ):
 
-    search_queries = [
+    queries = [
 
-        f"{query} tutorial "
-        f"for beginners",
+        f"{skill} tutorial",
 
-        f"best {query} "
-        f"playlist",
+        f"best {skill} playlist",
 
-        f"{query} crash "
-        f"course"
+        f"{skill} crash course"
     ]
 
     videos = []
 
-    for q in search_queries:
-
-        encoded_query = (
-            urllib.parse.quote(
-                q
-            )
-        )
+    for q in queries:
 
         url = (
-            "https://www.youtube.com/"
-            "results?search_query="
-            f"{encoded_query}"
+            "https://www.youtube.com/results?"
+            f"search_query="
+            f"{urllib.parse.quote(q)}"
         )
 
-        videos.append(
-            {
-                "title":
-                q.title(),
-
-                "url":
-                url
-            }
-        )
+        videos.append({
+            "title": q,
+            "url": url
+        })
 
     return videos

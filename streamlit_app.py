@@ -1,323 +1,266 @@
 import streamlit as st
-import json
-import os
 
-from services.roadmap_service import (
-    generate_roadmap
+from services.mentor_agent import (
+    generate_learning_plan
 )
 
 from services.youtube_service import (
     recommend_videos
 )
 
-from services.summary_service import (
-    summarize_video
-)
-
 from services.calendar_service import (
     add_learning_schedule
 )
 
-from services.email_service import (
-    send_weekly_email
+from services.memory_service import (
+    save_user
 )
 
-from services.chat_service import (
-    save_chat,
-    load_chat
+from services.video_summary_service import (
+    summarize_video
 )
 
-# ===================================
+# ==================================
 # PAGE CONFIG
-# ===================================
+# ==================================
 st.set_page_config(
     page_title="AI Skill Mentor",
     page_icon="🚀",
     layout="wide"
 )
 
-# ===================================
-# STORAGE SETUP
-# ===================================
-os.makedirs(
-    "storage",
-    exist_ok=True
-)
+# ==================================
+# SESSION STATE
+# ==================================
+if "plan" not in st.session_state:
+    st.session_state.plan = None
 
-USER_FILE = (
-    "storage/users.json"
-)
+if "summary" not in st.session_state:
+    st.session_state.summary = None
 
-CHAT_FILE = (
-    "storage/chat_history.json"
-)
+# ==================================
+# CUSTOM CSS
+# ==================================
+st.markdown("""
+<style>
 
-# create json files
-for file in [
-    USER_FILE,
-    CHAT_FILE
-]:
+.main-title {
+    text-align: center;
+    font-size: 42px;
+    font-weight: bold;
+}
 
-    if not os.path.exists(
-        file
-    ):
-        with open(
-            file,
-            "w"
-        ) as f:
+.subtitle {
+    text-align: center;
+    color: gray;
+    margin-bottom: 30px;
+}
 
-            json.dump(
-                {},
-                f
-            )
+.stButton > button {
+    width: 100%;
+    border-radius: 10px;
+    height: 50px;
+    font-size: 18px;
+}
 
+</style>
+""", unsafe_allow_html=True)
 
-# ===================================
-# USER STORAGE
-# ===================================
-def load_users():
-
-    with open(
-        USER_FILE,
-        "r"
-    ) as f:
-
-        return json.load(f)
-
-
-def save_users(
-    data
-):
-
-    with open(
-        USER_FILE,
-        "w"
-    ) as f:
-
-        json.dump(
-            data,
-            f,
-            indent=4
-        )
-
-
-# ===================================
-# HEADER
-# ===================================
+# ==================================
+# TITLE
+# ==================================
 st.markdown(
-    """
-    <h1 style='text-align:center;
-    color:#4F46E5;'>
-    🚀 AI Skill Mentor
-    </h1>
-
-    <h4 style='text-align:center;
-    color:gray;'>
-    Personalized Learning Assistant
-    </h4>
-    """,
+    '<div class="main-title">'
+    'AI Skill Mentor Agent'
+    '</div>',
     unsafe_allow_html=True
 )
 
-# ===================================
-# LOGIN
-# ===================================
-username = st.sidebar.text_input(
-    "Enter Username"
+st.markdown(
+    '<div class="subtitle">'
+    'Personalized AI Learning Mentor'
+    '</div>',
+    unsafe_allow_html=True
 )
 
-if not username:
-
-    st.info(
-        "Enter username to continue."
-    )
-
-    st.stop()
-
-users = load_users()
-
-user_data = users.get(
-    username,
-    {}
+# ==================================
+# USERNAME
+# ==================================
+username = st.text_input(
+    "Username"
 )
 
-# ===================================
-# TABS
-# ===================================
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "🏠 Home",
-    "🗺 Roadmap",
-    "🎥 Videos",
-    "💬 Mentor Chat",
-    "📈 Progress",
-    "⚙ Settings"
-])
+# ==================================
+# PROMPT
+# ==================================
+prompt = st.text_area(
+    "Tell me your learning goal",
 
-# ===================================
-# HOME
-# ===================================
-with tab1:
+    placeholder="""
+Example:
 
-    st.subheader(
-        "Start Learning"
-    )
+I want to learn Spring Boot
+for placements in 3 months.
 
-    st.image(
-        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-        use_container_width=True
-    )
+I can study 2 hours daily
+after 8 PM.
+"""
+)
 
-    skill = st.text_input(
-        "Skill",
-        value=user_data.get(
-            "skill",
-            ""
+# ==================================
+# GENERATE BUTTON
+# ==================================
+if st.button(
+    "Generate My Learning Plan"
+):
+
+    if not username:
+
+        st.warning(
+            "Please enter username."
         )
-    )
 
-    goal = st.text_input(
-        "Goal",
-        value=user_data.get(
-            "goal",
-            ""
+        st.stop()
+
+    if not prompt:
+
+        st.warning(
+            "Please enter learning goal."
         )
-    )
 
-    level = st.selectbox(
-        "Level",
-        [
-            "Beginner",
-            "Intermediate",
-            "Advanced"
-        ]
-    )
+        st.stop()
 
-    months = st.number_input(
-        "Months",
-        min_value=1,
-        max_value=24,
-        value=3
-    )
-
-    hours = st.number_input(
-        "Hours Per Day",
-        min_value=1,
-        max_value=12,
-        value=2
-    )
-
-    if st.button(
-        "Generate Roadmap"
+    with st.spinner(
+        "AI is building your roadmap..."
     ):
 
-        with st.spinner(
-            "Generating roadmap..."
-        ):
+        try:
 
-            roadmap = (
-                generate_roadmap(
-                    skill,
-                    goal,
-                    level,
-                    months,
-                    hours
+            plan = (
+                generate_learning_plan(
+                    prompt
                 )
             )
 
-            users[
-                username
-            ] = {
-
-                "skill":
-                skill,
-
-                "goal":
-                goal,
-
-                "level":
-                level,
-
-                "months":
-                months,
-
-                "hours":
-                hours,
-
-                "roadmap":
-                roadmap
-            }
-
-            save_users(
-                users
+            st.session_state.plan = (
+                plan
             )
 
-            st.success(
-                "Roadmap saved!"
+            save_user(
+                username,
+                plan.model_dump()
             )
 
-            st.write(
-                roadmap
+            try:
+
+                add_learning_schedule(
+                    plan.skill,
+                    plan.preferred_time
+                )
+
+            except Exception:
+                pass
+
+        except Exception as e:
+
+            st.error(
+                f"Error: {e}"
             )
 
-# ===================================
-# ROADMAP
-# ===================================
-with tab2:
+# ==================================
+# SHOW PLAN
+# ==================================
+if st.session_state.plan:
 
+    plan = (
+        st.session_state.plan
+    )
+
+    st.success(
+        "Learning Plan Generated!"
+    )
+
+    # ======================
+    # DETAILS
+    # ======================
     st.subheader(
-        "Saved Roadmap"
+        "Extracted Details"
     )
 
-    roadmap = user_data.get(
-        "roadmap"
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.info(
+            f"Skill: "
+            f"{plan.skill}"
+        )
+
+        st.info(
+            f"Goal: "
+            f"{plan.goal}"
+        )
+
+    with col2:
+
+        st.info(
+            f"Duration: "
+            f"{plan.duration_months}"
+            f" months"
+        )
+
+        st.info(
+            f"Study Time: "
+            f"{plan.preferred_time}"
+        )
+
+    st.divider()
+
+    # ======================
+    # ROADMAP
+    # ======================
+    st.subheader(
+        "Personalized Roadmap"
     )
 
-    if roadmap:
+    st.markdown(
+        plan.roadmap
+    )
 
-        st.write(
-            roadmap
-        )
+    st.divider()
 
-    else:
-
-        st.warning(
-            "Generate roadmap first."
-        )
-
-# ===================================
-# VIDEOS
-# ===================================
-with tab3:
-
+    # ======================
+    # VIDEOS
+    # ======================
     st.subheader(
         "Recommended Videos"
     )
 
-    skill_name = user_data.get(
-        "skill"
+    videos = (
+        recommend_videos(
+            plan.skill
+        )
     )
 
-    if skill_name:
+    for video in videos:
 
-        videos = (
-            recommend_videos(
-                skill_name
-            )
+        st.markdown(
+            f"""
+### [{video['title']}]
+({video['url']})
+"""
         )
-
-        for v in videos:
-
-            st.markdown(
-                f"### [{v['title']}]({v['url']})"
-            )
 
     st.divider()
 
+    # ======================
+    # VIDEO SUMMARY
+    # ======================
     st.subheader(
-        "Video Summary"
+        "AI Video Summarization"
     )
 
-    video_url = st.text_input(
+    youtube_url = st.text_input(
         "Paste YouTube URL"
     )
 
@@ -325,129 +268,53 @@ with tab3:
         "Summarize Video"
     ):
 
-        summary = (
-            summarize_video(
-                video_url
-            )
-        )
+        if youtube_url:
 
-        st.write(
-            summary
-        )
+            with st.spinner(
+                "Generating summary..."
+            ):
 
-# ===================================
-# CHAT
-# ===================================
-with tab4:
+                try:
 
-    st.subheader(
-        "Continue Learning"
-    )
+                    summary = (
+                        summarize_video(
+                            youtube_url
+                        )
+                    )
 
-    msg = st.text_input(
-        "Ask mentor"
-    )
+                    st.session_state.summary = (
+                        summary
+                    )
 
-    if st.button(
-        "Send Message"
-    ):
+                except Exception as e:
 
-        save_chat(
-            username,
-            msg
-        )
+                    st.error(
+                        f"Summary Error: {e}"
+                    )
+
+    # SHOW SUMMARY
+    if st.session_state.summary:
 
         st.success(
-            "Message saved!"
+            "Summary Generated!"
         )
 
-    history = (
-        load_chat(
-            username
-        )
-    )
-
-    if history:
-
-        for h in history:
-
-            st.chat_message(
-                "user"
-            ).write(h)
-
-# ===================================
-# PROGRESS
-# ===================================
-with tab5:
-
-    st.subheader(
-        "Track Progress"
-    )
-
-    progress = st.text_area(
-        "What did you complete?"
-    )
-
-    if st.button(
-        "Save Progress"
-    ):
-
-        st.success(
-            "Progress saved!"
-        )
-
-# ===================================
-# SETTINGS
-# ===================================
-with tab6:
-
-    st.subheader(
-        "Calendar & Email"
-    )
-
-    preferred_time = st.text_input(
-        "Preferred Time",
-        value="18:00"
-    )
-
-    if st.button(
-        "Add Calendar Event"
-    ):
-
-        add_learning_schedule(
-            user_data.get(
-                "skill",
-                ""
-            ),
-            preferred_time
-        )
-
-        st.success(
-            "Calendar event added!"
+        st.markdown(
+            st.session_state.summary
         )
 
     st.divider()
 
-    email = st.text_input(
-        "Email"
+    # ======================
+    # CALENDAR
+    # ======================
+    st.subheader(
+        "Study Schedule"
     )
 
-    if st.button(
-        "Enable Weekly Report"
-    ):
-
-        send_weekly_email(
-            email,
-            user_data.get(
-                "skill",
-                ""
-            ),
-            user_data.get(
-                "roadmap",
-                ""
-            )
-        )
-
-        st.success(
-            "Weekly email sent!"
-        )
+    st.success(
+        f"""
+Calendar scheduled
+at {plan.preferred_time}
+"""
+    )

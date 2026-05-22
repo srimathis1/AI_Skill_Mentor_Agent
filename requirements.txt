@@ -1,9 +1,10 @@
 streamlit
 groq
 python-dotenv
-youtube-transcript-api
-google-api-python-client
-google-auth-httplib2
+pydantic
+google-auth
 google-auth-oauthlib
+google-api-python-client
+youtube-transcript-api
 pytz
 requests
